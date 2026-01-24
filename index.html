@@ -7,7 +7,7 @@
     const params = new URLSearchParams(window.location.search);
     const eventId = params.get('id');    
     // Create deep link
-    const deepLink = `byobsports://event/${eventId}`;
+    const deepLink = `byobsports://events/${eventId}`;
     
     // Try to open the app
     window.location.href = deepLink;
