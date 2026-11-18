@@ -20,6 +20,9 @@ const PAGE = 'event';
 // [query string, expected deep link, or null when the page must show "incomplete"]
 const REDIRECT_CASES = [["?id=42", "byobsports://events/42"], ["?id=a%20b%2Fc", "byobsports://events/a%20b%2Fc"], ["", null], ["?profileId=u-1", null], ["?id=", null]];
 
+const WEB_HOME = 'https://play.byobsports.com/';
+// The web address a link maps to: the deep link's path on the web origin.
+const webFor = (search, expected) => WEB_HOME + expected.slice('byobsports://'.length);
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 
 const failures = [];
@@ -36,6 +39,8 @@ check(
 );
 const scripts = scriptTags.map((m) => m[2]);
 check(scripts.length > 0, 'no inline script found');
+// The button ships pointing at the web home page, so an incomplete link still has a way out.
+check(html.includes('id="web" href="' + WEB_HOME + '"'), 'the browser button markup must default to the web home page');
 
 /** Drop comments so prose such as "let the app" cannot trip the ES5 check. */
 const withoutComments = (code) =>
@@ -130,12 +135,18 @@ for (const [search, expected] of REDIRECT_CASES) {
       `${label}: did not show the "incomplete" message`,
     );
     check(result.elements.open?.href === 'byobsports://', `${label}: fallback button should open byobsports://`);
+    check(!result.elements.web?.href, `${label}: the script must leave the browser button alone for an incomplete link`);
   } else {
     check(
       result.navigations.length === 1 && result.navigations[0] === expected,
       `${label}: expected exactly one navigation to ${expected}, got ${JSON.stringify(result.navigations)}`,
     );
     check(result.elements.open?.href === expected, `${label}: the button href should equal the deep link`);
+    const expectedWeb = webFor(search, expected);
+    check(
+      result.elements.web?.href === expectedWeb,
+      `${label}: the browser button should be ${expectedWeb}, got ${result.elements.web?.href}`,
+    );
   }
 }
 
